@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-context.py",
+        "timeout": 10
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/format-dart.py",
+        "timeout": 20
+      }
+    ],
+    "afterTabFileEdit": [
+      {
+        "command": ".cursor/hooks/format-dart.py",
+        "timeout": 20
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/post-tool.py",
+        "matcher": "Write|StrReplace",
+        "timeout": 30
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/gate-shell.py",
+        "timeout": 8
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": ".cursor/hooks/gate-mcp.py",
+        "timeout": 8
+      }
+    ],
+    "beforeReadFile": [
+      {
+        "command": ".cursor/hooks/protect-secrets.py",
+        "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/quality-gate.py",
+        "timeout": 45,
+        "loop_limit": 1
+      }
+    ]
+  }
+}

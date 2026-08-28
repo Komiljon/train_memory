@@ -1,0 +1,14 @@
+---
+description: Flutter/Dart тесты — finders, pump, без подмены анализатора.
+globs: test/**/*.dart, integration_test/**/*.dart, **/*_test.dart
+alwaysApply: false
+---
+
+# Tests
+
+Линты: `package:flutter_lints/flutter.yaml`. `ignore_for_file` только с причиной.
+
+- Domain/use case — unit без UI и без виджетов. Riverpod: `ProviderContainer` (unit) / `ProviderScope` + overrides (widget). Не тестируй через `setState`.
+- Виджеты: `testWidgets` + `find.byKey` / Semantics, не координаты и не «первый Text».
+- `FlipCard`/вечные анимации: `pump(duration)`, не `pumpAndSettle`. Golden — статичные экраны, не флип.
+- MCP `run_tests` если есть, иначе `flutter test`. Тесты ≠ анализатор. Нативные тесты — только если логика реально в Swift/Kotlin.

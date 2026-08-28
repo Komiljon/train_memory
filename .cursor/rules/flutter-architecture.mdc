@@ -1,0 +1,29 @@
+---
+description: Clean Architecture + Riverpod, UI, вёрстка, ассеты (lib + pubspec).
+globs: lib/**/*.dart, pubspec.yaml
+alwaysApply: false
+---
+
+# Flutter — Clean Architecture + Riverpod
+
+Новый код не складывай в `lib/main.dart`. Слои фичи не пропускай и не перемешивай.
+
+```text
+lib/
+  main.dart                 # ProviderScope + runApp
+  app.dart                  # MaterialApp, тема, маршруты
+  core/                     # ошибка, тема, DI, константы — без UI фичи
+  features/<feature>/
+    domain/                 # entities, repository (interface), use cases
+    data/                   # models, datasources, repository impl
+    presentation/           # pages, widgets, Riverpod Notifier/providers
+```
+
+Зависимости только внутрь: `presentation → domain ← data`. UI не ходит в datasource. Domain не импортирует Flutter/Riverpod, кроме если use case уже в presentation-слое не нужен.
+
+**Riverpod (не setState/GetX/BLoC/MobX):** `ProviderScope` в `main`. Экран — `ConsumerWidget` / `ConsumerStatefulWidget`. Состояние фичи — `Notifier` / `AsyncNotifier` (+ `Provider`/`FutureProvider` для read-only). `StatefulWidget` — только локальный UI (контроллер анимации, фокус), не счёт/колода/прогресс. Не вызывай use case из `build`.
+
+- `const` где можно. После `await`: `if (!mounted) return` (или `ref.mounted` у Notifier). `BuildContext` не в полях.
+- Списки: `builder` + `Key` = id. `FlipCard` изолируй. Overflow: не голый `Row` карточек — `LayoutBuilder` + `GridView` (wide ≥600 → 4, иначе 2). `SafeArea`. Тема, не хардкод цветов.
+- Ассеты: `assets/` + `pubspec.yaml` → `flutter: assets:`. `Semantics`. Сбои — UI. Живой баг: `dtd` → errors → inspector → `hot_reload`.
+- Кодировка исходников: UTF-8 без BOM (хук снимает BOM после правки).

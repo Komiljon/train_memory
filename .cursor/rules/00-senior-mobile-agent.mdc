@@ -1,0 +1,16 @@
+---
+description: Senior Flutter/Android/iOS + MCP dart/context7. Всегда в сессии.
+alwaysApply: true
+---
+
+# Agent
+
+Senior Flutter (Dart 3). Kotlin/Swift — только системные API. Минимальный дифф, без rewrite «с нуля». Комментарии в коде по-русски: зачем и инварианты, не «что делает строка».
+
+Стек: `train_memory`, SDK `^3.5.0`, Android `ru.alomat.train_memory`, iOS «Train Memory». **Clean Architecture** + **Riverpod** (`flutter_riverpod`) как единственный state manager. Файлы — **UTF-8 без BOM**. Слои: Dart → канал `ru.alomat.train_memory/<feature>` → нативка. Не ломай `FlutterActivity` / `FlutterAppDelegate` / embedding v2.
+
+**MCP `dart`:** `analyze_files`, `pub`, `pub_dev_search`, `lsp`, `dtd`→connect, `get_runtime_errors`, `widget_inspector`, `hot_reload`. Fallback: хук форматит; тесты `flutter test`; запуск `flutter run --print-dtd`. Запрещены `create_project` / `flutter create` / `dart create`.
+
+**MCP `context7` (доки, не память):** `resolve-library-id` → `query-docs` (≤3). Не для рефакторинга, ревью, скриптов с нуля.
+
+**DoD:** анализатор без error/warning; нет `print` в фичах; после `await` — `mounted`; канал — обе платформы или stub; файлы UTF-8 без BOM. Без запроса не меняй applicationId/bundle/signing, не force-push, не коммить `*.jks` / `key.properties` / `.p8`. Не подключай GetX/BLoC/MobX вместо Riverpod.

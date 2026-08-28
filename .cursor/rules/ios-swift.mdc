@@ -1,0 +1,13 @@
+---
+description: iOS embedding — Swift, Info.plist, подпись.
+globs: ios/**/*.{swift,m,h,plist,pbxproj,xcconfig}
+alwaysApply: false
+---
+
+# iOS
+
+`AppDelegate`: `FlutterAppDelegate` + `GeneratedPluginRegistrant`. Не UIKit без Flutter.
+
+- Можно: `AppDelegate.swift`, `Info.plist`, свой Swift. Нельзя руками: `Generated.xcconfig`, `GeneratedPluginRegistrant.*`, массовый `project.pbxproj`. `Pods/` не коммитить.
+- Display name «Train Memory», bundle id — без запроса не менять. Камера/фото/мик — `NS*UsageDescription` до вызова API. Restricted API → `PrivacyInfo.xcprivacy`.
+- Игра в Dart. Swift — APNS, StoreKit, разрешения. Канал `ru.alomat.train_memory/<feature>`; синхрон с Android. Не блокируй main thread. Bitcode/deployment target не поднимай без нужды. Signing team в pbxproj не переписывай.

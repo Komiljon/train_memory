@@ -1,0 +1,14 @@
+---
+description: Android embedding — Kotlin, Gradle, Manifest.
+globs: android/**/*.{kt,kts,gradle,xml,properties}
+alwaysApply: false
+---
+
+# Android
+
+Пакет `ru.alomat.train_memory`. `MainActivity: FlutterActivity()`. `flutterEmbedding=2` не трогать. Kotlin, не Java.
+
+- SDK/NDK из `flutter.*`. AGP/Kotlin в `settings.gradle` не бампай «заодно».
+- Manifest: новые permission только с комментарием зачем; не снимай `exported` у launcher; не чисти `configChanges`.
+- UI/игра в Dart. Kotlin — камера, пуши, billing, система. Канал `ru.alomat.train_memory/<feature>`; в том же изменении — iOS или stub. Без `!!`. Не правь generated registrant / `.android/`.
+- Не коммить `local.properties`, keystore, `key.properties`. Пароли не в `build.gradle`.
