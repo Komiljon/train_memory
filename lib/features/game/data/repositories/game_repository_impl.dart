@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../../../core/error/failure.dart';
+import '../../domain/entities/deck_kind.dart';
 import '../../domain/entities/memory_card.dart';
 import '../../domain/repositories/game_repository.dart';
 import '../datasources/card_catalog_datasource.dart';
@@ -17,8 +18,11 @@ class GameRepositoryImpl implements GameRepository {
   final Random _random;
 
   @override
-  List<MemoryCard> createShuffledDeck({required int pairCount}) {
-    final faces = _catalog.getAvailableFaces();
+  List<MemoryCard> createShuffledDeck({
+    required int pairCount,
+    required DeckKind deckKind,
+  }) {
+    final faces = _catalog.getAvailableFaces(deckKind);
     if (faces.length < pairCount) {
       throw InsufficientCatalogFailure(
         pairCount: pairCount,

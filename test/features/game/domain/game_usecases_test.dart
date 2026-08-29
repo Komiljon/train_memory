@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:train_memory/core/constants/game_constants.dart';
 import 'package:train_memory/features/game/data/datasources/card_catalog_datasource.dart';
 import 'package:train_memory/features/game/data/repositories/game_repository_impl.dart';
+import 'package:train_memory/features/game/domain/entities/deck_kind.dart';
 import 'package:train_memory/features/game/domain/entities/game_phase.dart';
 import 'package:train_memory/features/game/domain/entities/game_session.dart';
 import 'package:train_memory/features/game/domain/entities/memory_card.dart';
@@ -20,12 +21,34 @@ void main() {
       );
       final startGame = StartGame(repository);
 
-      final session = startGame(pairCount: kPairCount);
+      final session = startGame(
+        pairCount: kPairCount,
+        deckKind: DeckKind.nature,
+      );
 
       expect(session.cards.length, 16);
       expect(session.phase, GamePhase.idle);
       expect(session.moves, 0);
       expect(session.firstFlippedIndex, isNull);
+    });
+
+    test('создаёт колоду из 16 игральных карт', () {
+      final repository = GameRepositoryImpl(
+        catalog: const CardCatalogDataSource(),
+        random: Random(42),
+      );
+      final startGame = StartGame(repository);
+
+      final session = startGame(
+        pairCount: kPairCount,
+        deckKind: DeckKind.playingCards,
+      );
+
+      expect(session.cards.length, 16);
+      expect(
+        session.cards.map((c) => c.pairId).toSet().length,
+        kPairCount,
+      );
     });
   });
 

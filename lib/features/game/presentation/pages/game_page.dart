@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/game_phase.dart';
 import '../providers/game_notifier.dart';
 import '../providers/game_providers.dart';
+import '../widgets/deck_picker_drawer.dart';
 import '../widgets/game_board.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/pair_face_mapper.dart';
@@ -17,12 +17,22 @@ class GamePage extends ConsumerWidget {
     final session = ref.watch(gameNotifierProvider);
     final error = ref.watch(gameErrorProvider);
     final catalog = ref.watch(cardCatalogProvider);
+    final deckKind = ref.watch(selectedDeckProvider);
     final mapper = PairFaceMapper(catalog);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Train Memory'),
+        leading: Builder(
+          builder: (context) => IconButton(
+            key: const Key('open_deck_drawer'),
+            icon: const Icon(Icons.menu),
+            tooltip: 'Меню колоды',
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
       ),
+      drawer: const DeckPickerDrawer(),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,16 +55,11 @@ class GamePage extends ConsumerWidget {
                 onRestart: () =>
                     ref.read(gameNotifierProvider.notifier).restart(),
               ),
-              if (session.phase == GamePhase.won)
-                GameWinBanner(
-                  moves: session.moves,
-                  onPlayAgain: () =>
-                      ref.read(gameNotifierProvider.notifier).restart(),
-                ),
               Expanded(
                 child: GameBoard(
                   session: session,
                   mapper: mapper,
+                  deckKind: deckKind,
                   onCardTap: (index) => ref
                       .read(gameNotifierProvider.notifier)
                       .onCardTapped(index),

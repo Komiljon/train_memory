@@ -14,6 +14,13 @@ class GameNotifier extends Notifier<GameSession> {
 
   @override
   GameSession build() {
+    ref.listen(selectedDeckProvider, (previous, next) {
+      // Смена колоды отменяет отложенное закрытие несовпавших карт.
+      if (previous != next) {
+        _resolveGeneration++;
+      }
+    });
+    ref.watch(selectedDeckProvider);
     return _startNewSession();
   }
 
@@ -58,7 +65,8 @@ class GameNotifier extends Notifier<GameSession> {
     try {
       ref.read(gameErrorProvider.notifier).state = null;
       final startGame = ref.read(startGameProvider);
-      return startGame(pairCount: kPairCount);
+      final deckKind = ref.read(selectedDeckProvider);
+      return startGame(pairCount: kPairCount, deckKind: deckKind);
     } on Failure catch (failure) {
       ref.read(gameErrorProvider.notifier).state = failure;
       return const GameSession(

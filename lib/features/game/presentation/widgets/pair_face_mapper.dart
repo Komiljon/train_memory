@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/datasources/card_catalog_datasource.dart';
+import '../../domain/entities/card_suit.dart';
 
-/// Маппинг pairId → иконка и подпись для лица карты (presentation-only).
+/// Маппинг pairId → иконка, подпись или ранг/масть (presentation-only).
 class PairFaceMapper {
   const PairFaceMapper(this._catalog);
 
@@ -32,7 +33,15 @@ class PairFaceMapper {
     return _catalog.findByPairId(pairId)?.assetPath;
   }
 
-  /// Цвет лица из pairId — стабильный hue без хардкода в виджете.
+  String? rankFor(String pairId) {
+    return _catalog.findByPairId(pairId)?.rank;
+  }
+
+  CardSuit? suitFor(String pairId) {
+    return _catalog.findByPairId(pairId)?.suit;
+  }
+
+  /// Цвет лица из pairId — стабильный hue без хардкода в виджете (колода «природа»).
   Color colorFor(String pairId, ColorScheme scheme) {
     final hash = pairId.hashCode.abs();
     final hues = [

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/game_session.dart';
 
-/// Панель статистики и управления партией.
+/// Компактная панель: одна строка, чтобы сетка 4×4 получила больше высоты.
 class GameHud extends StatelessWidget {
   const GameHud({
     super.key,
@@ -20,7 +20,7 @@ class GameHud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
       child: Row(
         children: [
           Expanded(
@@ -29,17 +29,23 @@ class GameHud extends StatelessWidget {
               value: '${session.moves}',
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: _StatChip(
               label: 'Пары',
               value: '$_matchedPairs / ${session.pairCount}',
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           FilledButton.tonalIcon(
             onPressed: onRestart,
-            icon: const Icon(Icons.refresh_rounded),
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Заново'),
           ),
         ],
@@ -48,6 +54,7 @@ class GameHud extends StatelessWidget {
   }
 }
 
+/// Подпись и значение в одну линию — без пустой высоты двухстрочного чипа.
 class _StatChip extends StatelessWidget {
   const _StatChip({
     required this.label,
@@ -60,59 +67,35 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+          Flexible(
+            child: Text(
+              label,
+              style: textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
+          const SizedBox(width: 6),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Баннер победы — без отдельного роута.
-class GameWinBanner extends StatelessWidget {
-  const GameWinBanner({
-    super.key,
-    required this.moves,
-    required this.onPlayAgain,
-  });
-
-  final int moves;
-  final VoidCallback onPlayAgain;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return MaterialBanner(
-      backgroundColor: scheme.primaryContainer,
-      content: Text(
-        'Победа! Ходов: $moves',
-        style: TextStyle(color: scheme.onPrimaryContainer),
-      ),
-      actions: [
-        TextButton(
-          onPressed: onPlayAgain,
-          child: const Text('Играть снова'),
-        ),
-      ],
     );
   }
 }

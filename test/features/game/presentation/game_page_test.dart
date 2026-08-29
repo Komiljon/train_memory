@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:train_memory/core/constants/game_constants.dart';
+import 'package:train_memory/core/theme/app_theme.dart';
+import 'package:train_memory/features/game/domain/entities/deck_kind.dart';
 import 'package:train_memory/features/game/domain/entities/game_phase.dart';
 import 'package:train_memory/features/game/domain/entities/game_session.dart';
 import 'package:train_memory/features/game/domain/entities/memory_card.dart';
@@ -12,7 +15,10 @@ import 'package:train_memory/features/game/presentation/providers/game_providers
 /// Фиксированная колода для предсказуемого widget-теста.
 class _FixedDeckRepository implements GameRepository {
   @override
-  List<MemoryCard> createShuffledDeck({required int pairCount}) {
+  List<MemoryCard> createShuffledDeck({
+    required int pairCount,
+    required DeckKind deckKind,
+  }) {
     return const [
       MemoryCard(id: 'a', pairId: 'star'),
       MemoryCard(id: 'b', pairId: 'moon'),
@@ -44,7 +50,7 @@ void main() {
             ),
           ),
         ],
-        child: const MaterialApp(home: GamePage()),
+        child: MaterialApp(theme: buildAppTheme(), home: const GamePage()),
       ),
     );
 
@@ -57,6 +63,12 @@ void main() {
     expect(find.byKey(const Key('b')), findsOneWidget);
     expect(find.byKey(const Key('c')), findsOneWidget);
     expect(find.byKey(const Key('d')), findsOneWidget);
+
+    final grid = tester.widget<GridView>(find.byType(GridView));
+    final delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, kGridSize);
+    expect(grid.physics, isA<NeverScrollableScrollPhysics>());
   });
 
   testWidgets('тап по карте обновляет счётчик ходов', (tester) async {
@@ -65,7 +77,7 @@ void main() {
         overrides: [
           gameRepositoryProvider.overrideWithValue(_FixedDeckRepository()),
         ],
-        child: const MaterialApp(home: GamePage()),
+        child: MaterialApp(theme: buildAppTheme(), home: const GamePage()),
       ),
     );
 
@@ -78,6 +90,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('1'), findsOneWidget);
+  });
+
+  testWidgets('drawer открывается и позволяет выбрать колоду карт',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          gameRepositoryProvider.overrideWithValue(_FixedDeckRepository()),
+        ],
+        child: MaterialApp(theme: buildAppTheme(), home: const GamePage()),
+      ),
+    );
+
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('open_deck_drawer')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Колода'), findsOneWidget);
+    expect(find.text('Символы природы'), findsOneWidget);
+    expect(find.text('Колода карт'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('deck_option_playing_cards')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsNothing);
   });
 }
 
