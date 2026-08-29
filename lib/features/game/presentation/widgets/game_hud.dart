@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_tokens.dart';
 import '../../domain/entities/game_session.dart';
 
-/// Компактная панель: одна строка, чтобы сетка 4×4 получила больше высоты.
+/// Панель статистики: stat cards, прогресс пар и кнопка перезапуска.
 class GameHud extends StatelessWidget {
   const GameHud({
     super.key,
@@ -17,33 +18,56 @@ class GameHud extends StatelessWidget {
     return session.cards.where((c) => c.isMatched).length ~/ 2;
   }
 
+  double get _pairProgress {
+    if (session.pairCount == 0) {
+      return 0;
+    }
+    return _matchedPairs / session.pairCount;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tokens = context.appTokens;
+    final scheme = Theme.of(context).colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+      padding: EdgeInsets.fromLTRB(
+        tokens.spacingSm,
+        tokens.spacingXs,
+        tokens.spacingSm,
+        tokens.spacingSm,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: _StatChip(
+            child: _StatCard(
+              icon: Icons.touch_app_rounded,
               label: 'Ходы',
               value: '${session.moves}',
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: tokens.spacingSm),
           Expanded(
-            child: _StatChip(
+            flex: 2,
+            child: _StatCard(
+              icon: Icons.grid_view_rounded,
               label: 'Пары',
               value: '$_matchedPairs / ${session.pairCount}',
+              progress: _pairProgress,
             ),
           ),
-          const SizedBox(width: 6),
-          FilledButton.tonalIcon(
+          SizedBox(width: tokens.spacingSm),
+          FilledButton.icon(
             onPressed: onRestart,
             style: FilledButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              minimumSize: Size.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.spacingMd,
+                vertical: tokens.spacingSm,
+              ),
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
             ),
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Заново'),
@@ -54,46 +78,72 @@ class GameHud extends StatelessWidget {
   }
 }
 
-/// Подпись и значение в одну линию — без пустой высоты двухстрочного чипа.
-class _StatChip extends StatelessWidget {
-  const _StatChip({
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.icon,
     required this.label,
     required this.value,
+    this.progress,
   });
 
+  final IconData icon;
   final String label;
   final String value;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final tokens = context.appTokens;
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spacingSm,
+        vertical: tokens.spacingSm,
       ),
-      child: Row(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(tokens.radiusChip),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              label,
-              style: textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+          Row(
+            children: [
+              Icon(icon, size: 14, color: scheme.primary),
+              SizedBox(width: tokens.spacingXs),
+              Expanded(
+                child: Text(
+                  label,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              Text(
+                value,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+          if (progress != null) ...[
+            SizedBox(height: tokens.spacingXs),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 3,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

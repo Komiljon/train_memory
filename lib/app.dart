@@ -12,7 +12,9 @@ class TrainMemoryApp extends StatelessWidget {
     return MaterialApp(
       title: 'Train Memory',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: ThemeMode.system,
       home: const GamePage(),
     );
   }

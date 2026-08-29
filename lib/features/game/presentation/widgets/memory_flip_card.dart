@@ -2,13 +2,16 @@ import 'package:flip_card/flip_card.dart';
 import 'package:flip_card/flip_card_controller.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/theme/game_card_theme.dart';
 import '../../domain/entities/deck_kind.dart';
 import '../../domain/entities/memory_card.dart';
+import 'game_card_shell.dart';
 import 'pair_face_mapper.dart';
-import 'playing_card_back.dart';
 import 'playing_card_face.dart';
+import 'themed_card_back.dart';
 
-/// Одна карта на поле: FlipCard изолирован, flipOnTouch=false — логика в Notifier.
+/// Одна карта на поле: единая оболочка, flip и micro-interactions.
 class MemoryFlipCard extends StatefulWidget {
   const MemoryFlipCard({
     super.key,
@@ -17,6 +20,7 @@ class MemoryFlipCard extends StatefulWidget {
     required this.deckKind,
     required this.onTap,
     required this.enabled,
+    this.isResolvingMismatch = false,
   });
 
   final MemoryCard card;
@@ -25,18 +29,55 @@ class MemoryFlipCard extends StatefulWidget {
   final VoidCallback onTap;
   final bool enabled;
 
+  /// Карта участвует в несовпадении — лёгкий shake.
+  final bool isResolvingMismatch;
+
   @override
   State<MemoryFlipCard> createState() => _MemoryFlipCardState();
 }
 
-class _MemoryFlipCardState extends State<MemoryFlipCard> {
+class _MemoryFlipCardState extends State<MemoryFlipCard>
+    with TickerProviderStateMixin {
   final FlipCardController _controller = FlipCardController();
+  late final AnimationController _shakeController;
+  late final AnimationController _matchController;
+  late final Animation<double> _shakeAnimation;
+  late final Animation<double> _matchScale;
 
-  static const double _borderRadius = 12;
+  bool _wasMatched = false;
+  bool _showMatchGlow = false;
 
   @override
   void initState() {
     super.initState();
+    _wasMatched = widget.card.isMatched;
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: -6), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -6, end: 6), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: 6, end: -4), weight: 2),
+      TweenSequenceItem(tween: Tween(begin: -4, end: 0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _shakeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _matchController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _matchScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1, end: 1.05), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.05, end: 1), weight: 50),
+    ]).animate(CurvedAnimation(
+      parent: _matchController,
+      curve: Curves.easeOut,
+    ));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.card.isFaceUp) {
         _controller.toggleCardWithoutAnimation();
@@ -47,20 +88,45 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
   @override
   void didUpdateWidget(MemoryFlipCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.card.isFaceUp != widget.card.isFaceUp) {
       _controller.toggleCard();
+    }
+
+    if (!oldWidget.isResolvingMismatch && widget.isResolvingMismatch) {
+      _shakeController.forward(from: 0);
+    }
+
+    if (!_wasMatched && widget.card.isMatched) {
+      _wasMatched = true;
+      _showMatchGlow = true;
+      _matchController.forward(from: 0).then((_) {
+        if (mounted) {
+          setState(() => _showMatchGlow = false);
+        }
+      });
     }
   }
 
   @override
+  void dispose() {
+    _shakeController.dispose();
+    _matchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final cardTheme = context.gameCardTheme;
+    final tokens = context.appTokens;
     final label = widget.mapper.labelFor(widget.card.pairId);
     final isPlayingCards = widget.deckKind == DeckKind.playingCards;
 
-    final Widget cardContent = isPlayingCards
-        ? _playingCardFlip(label)
-        : _themedCardFlip(scheme, label);
+    final borderColor = widget.card.isMatched ? cardTheme.matchedBorder : null;
+    final opacity = widget.card.isMatched ? cardTheme.matchedOpacity : 1.0;
+
+    final cardContent =
+        isPlayingCards ? _playingCardFlip(label) : _themedCardFlip(label);
 
     return Semantics(
       button: true,
@@ -68,18 +134,34 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
       label: widget.card.isFaceUp || widget.card.isMatched
           ? 'Карта $label'
           : 'Закрытая карта',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.enabled ? widget.onTap : null,
-          borderRadius: BorderRadius.circular(_borderRadius),
-          child: cardContent,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_shakeController, _matchController]),
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(_shakeAnimation.value, 0),
+            child: Transform.scale(
+              scale: _matchScale.value,
+              child: child,
+            ),
+          );
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.enabled ? widget.onTap : null,
+            borderRadius: BorderRadius.circular(tokens.radiusCard),
+            child: GameCardShell(
+              borderColor: borderColor,
+              opacity: opacity,
+              glow: _showMatchGlow,
+              child: cardContent,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  /// Игральная карта: пропорция 5:7 внутри клетки, чтобы не растягивать в блин.
   Widget _playingCardFlip(String label) {
     final rank = widget.mapper.rankFor(widget.card.pairId);
     final suit = widget.mapper.suitFor(widget.card.pairId);
@@ -106,7 +188,7 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
               controller: _controller,
               flipOnTouch: false,
               direction: FlipDirection.HORIZONTAL,
-              front: const PlayingCardBack(),
+              front: const ThemedCardBack(),
               back: rank != null && suit != null
                   ? PlayingCardFace(rank: rank, suit: suit)
                   : _fallbackFace(label),
@@ -117,8 +199,9 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
     );
   }
 
-  /// Тематическая карта (природа, животные, цифры…): рубашка «?», лицо — glyph/иконка/asset.
-  Widget _themedCardFlip(ColorScheme scheme, String label) {
+  Widget _themedCardFlip(String label) {
+    final scheme = Theme.of(context).colorScheme;
+    final cardTheme = context.gameCardTheme;
     final faceColor = widget.mapper.colorFor(widget.card.pairId, scheme);
 
     return FlipCard(
@@ -126,39 +209,29 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
       controller: _controller,
       flipOnTouch: false,
       direction: FlipDirection.HORIZONTAL,
-      front: _CardSide(
-        background: scheme.primaryContainer,
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Icon(
-            Icons.question_mark_rounded,
-            size: 36,
-            color: scheme.onPrimaryContainer,
-          ),
-        ),
-      ),
-      back: _CardSide(
-        background: faceColor.withValues(alpha: 0.25),
+      front: const ThemedCardBack(),
+      back: _ThemedFaceSide(
+        background: cardTheme.faceBackground,
         child: _ThemedFaceContent(
           pairId: widget.card.pairId,
           mapper: widget.mapper,
           label: label,
-          iconColor: faceColor,
+          accentColor: faceColor,
         ),
       ),
     );
   }
 
   Widget _fallbackFace(String label) {
-    return _CardSide(
-      background: Theme.of(context).colorScheme.surface,
+    return _ThemedFaceSide(
+      background: context.gameCardTheme.faceBackground,
       child: Text(label),
     );
   }
 }
 
-class _CardSide extends StatelessWidget {
-  const _CardSide({
+class _ThemedFaceSide extends StatelessWidget {
+  const _ThemedFaceSide({
     required this.background,
     required this.child,
   });
@@ -171,13 +244,7 @@ class _CardSide extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
+      color: background,
       alignment: Alignment.center,
       child: child,
     );
@@ -189,27 +256,98 @@ class _ThemedFaceContent extends StatelessWidget {
     required this.pairId,
     required this.mapper,
     required this.label,
-    required this.iconColor,
+    required this.accentColor,
   });
 
   final String pairId;
   final PairFaceMapper mapper;
   final String label;
-  final Color iconColor;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.appTokens;
+
+    return Padding(
+      padding: EdgeInsets.all(tokens.spacingXs),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _FaceBadge(
+            accentColor: accentColor,
+            child: _FaceGlyph(
+              pairId: pairId,
+              mapper: mapper,
+              accentColor: accentColor,
+            ),
+          ),
+          SizedBox(height: tokens.spacingXs),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Круглый badge — единый контейнер для emoji, цифр и иконок.
+class _FaceBadge extends StatelessWidget {
+  const _FaceBadge({
+    required this.accentColor,
+    required this.child,
+  });
+
+  final Color accentColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.18),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.35),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+}
+
+class _FaceGlyph extends StatelessWidget {
+  const _FaceGlyph({
+    required this.pairId,
+    required this.mapper,
+    required this.accentColor,
+  });
+
+  final String pairId;
+  final PairFaceMapper mapper;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final assetPath = mapper.assetPathFor(pairId);
     if (assetPath != null) {
-      return Padding(
-        padding: const EdgeInsets.all(4),
+      return ClipOval(
         child: Image.asset(
           assetPath,
-          fit: BoxFit.contain,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Icon(
             mapper.iconFor(pairId),
-            size: 32,
-            color: iconColor,
+            size: 28,
+            color: accentColor,
           ),
         ),
       );
@@ -217,60 +355,21 @@ class _ThemedFaceContent extends StatelessWidget {
 
     final glyph = mapper.glyphFor(pairId);
     if (glyph != null) {
-      // Цифры и эмодзи: крупный glyph читается в клетке 4×4 лучше Material-иконок.
       final isDigit = glyph.length == 1 && int.tryParse(glyph) != null;
       return FittedBox(
         fit: BoxFit.scaleDown,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                glyph,
-                style: TextStyle(
-                  fontSize: isDigit ? 36 : 32,
-                  fontWeight: isDigit ? FontWeight.w700 : FontWeight.normal,
-                  height: 1,
-                  color: isDigit ? iconColor : null,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelSmall,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+        child: Text(
+          glyph,
+          style: TextStyle(
+            fontSize: isDigit ? 28 : 26,
+            fontWeight: isDigit ? FontWeight.w700 : FontWeight.normal,
+            height: 1,
+            color: isDigit ? accentColor : null,
           ),
         ),
       );
     }
 
-    // FittedBox: в клетке 4×4 иконка+подпись сжимаются, а не вылезают за край.
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(mapper.iconFor(pairId), size: 32, color: iconColor),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
+    return Icon(mapper.iconFor(pairId), size: 28, color: accentColor);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Палитра игральных карт: цвета не хардкодятся в виджетах фичи.
+import 'game_card_theme.dart';
+
+/// Палитра игральных карт: делегирует в [GameCardTheme] для обратной совместимости.
 @immutable
 class PlayingCardColors extends ThemeExtension<PlayingCardColors> {
   const PlayingCardColors({
@@ -17,14 +19,19 @@ class PlayingCardColors extends ThemeExtension<PlayingCardColors> {
   final Color backFill;
   final Color border;
 
-  /// Строим из ColorScheme, чтобы тёмная тема (если появится) подхватилась автоматически.
   factory PlayingCardColors.fromColorScheme(ColorScheme scheme) {
+    return PlayingCardColors.fromGameCardTheme(
+      GameCardTheme.fromColorScheme(scheme, scheme.brightness),
+    );
+  }
+
+  factory PlayingCardColors.fromGameCardTheme(GameCardTheme theme) {
     return PlayingCardColors(
-      redSuit: const Color(0xFFC62828),
-      blackSuit: scheme.onSurface,
-      faceBackground: scheme.surface,
-      backFill: scheme.primary,
-      border: scheme.outlineVariant,
+      redSuit: theme.redSuit,
+      blackSuit: theme.blackSuit,
+      faceBackground: theme.faceBackground,
+      backFill: theme.backFill,
+      border: theme.border,
     );
   }
 
@@ -62,8 +69,7 @@ class PlayingCardColors extends ThemeExtension<PlayingCardColors> {
 
 extension PlayingCardColorsX on BuildContext {
   PlayingCardColors get playingCardColors {
-    final scheme = Theme.of(this).colorScheme;
     return Theme.of(this).extension<PlayingCardColors>() ??
-        PlayingCardColors.fromColorScheme(scheme);
+        PlayingCardColors.fromColorScheme(Theme.of(this).colorScheme);
   }
 }
