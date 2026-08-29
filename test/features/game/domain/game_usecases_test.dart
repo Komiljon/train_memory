@@ -14,7 +14,7 @@ import 'package:train_memory/features/game/domain/usecases/start_game.dart';
 
 void main() {
   group('StartGame', () {
-    test('создаёт колоду из 16 карт и фазу idle', () {
+    test('создаёт колоду из 16 карт и фазу idle для природы', () {
       final repository = GameRepositoryImpl(
         catalog: const CardCatalogDataSource(),
         random: Random(42),
@@ -32,24 +32,26 @@ void main() {
       expect(session.firstFlippedIndex, isNull);
     });
 
-    test('создаёт колоду из 16 игральных карт', () {
-      final repository = GameRepositoryImpl(
-        catalog: const CardCatalogDataSource(),
-        random: Random(42),
-      );
-      final startGame = StartGame(repository);
+    for (final kind in DeckKind.values) {
+      test('создаёт 16 карт и $kPairCount пар для $kind', () {
+        final repository = GameRepositoryImpl(
+          catalog: const CardCatalogDataSource(),
+          random: Random(42),
+        );
+        final startGame = StartGame(repository);
 
-      final session = startGame(
-        pairCount: kPairCount,
-        deckKind: DeckKind.playingCards,
-      );
+        final session = startGame(
+          pairCount: kPairCount,
+          deckKind: kind,
+        );
 
-      expect(session.cards.length, 16);
-      expect(
-        session.cards.map((c) => c.pairId).toSet().length,
-        kPairCount,
-      );
-    });
+        expect(session.cards.length, 16);
+        expect(
+          session.cards.map((c) => c.pairId).toSet().length,
+          kPairCount,
+        );
+      });
+    }
   });
 
   group('FlipCardUseCase', () {

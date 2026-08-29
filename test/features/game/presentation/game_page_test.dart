@@ -92,7 +92,7 @@ void main() {
     expect(find.text('1'), findsOneWidget);
   });
 
-  testWidgets('drawer открывается и позволяет выбрать колоду карт',
+  testWidgets('drawer показывает все колоды и позволяет выбрать животных',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -109,10 +109,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Колода'), findsOneWidget);
-    expect(find.text('Символы природы'), findsOneWidget);
-    expect(find.text('Колода карт'), findsOneWidget);
+    for (final title in [
+      'Символы природы',
+      'Колода карт',
+      'Животные',
+      'Фрукты и ягоды',
+      'Цифры',
+      'Транспорт',
+      'Фигуры',
+    ]) {
+      expect(find.text(title), findsOneWidget);
+    }
 
-    await tester.tap(find.byKey(const Key('deck_option_playing_cards')));
+    await tester.tap(find.byKey(const Key('deck_option_animals')));
     await tester.pumpAndSettle();
 
     expect(find.byType(Drawer), findsNothing);

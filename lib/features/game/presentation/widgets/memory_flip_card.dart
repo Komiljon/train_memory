@@ -60,7 +60,7 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
 
     final Widget cardContent = isPlayingCards
         ? _playingCardFlip(label)
-        : _natureCardFlip(scheme, label);
+        : _themedCardFlip(scheme, label);
 
     return Semantics(
       button: true,
@@ -117,7 +117,8 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
     );
   }
 
-  Widget _natureCardFlip(ColorScheme scheme, String label) {
+  /// Тематическая карта (природа, животные, цифры…): рубашка «?», лицо — glyph/иконка/asset.
+  Widget _themedCardFlip(ColorScheme scheme, String label) {
     final faceColor = widget.mapper.colorFor(widget.card.pairId, scheme);
 
     return FlipCard(
@@ -138,7 +139,7 @@ class _MemoryFlipCardState extends State<MemoryFlipCard> {
       ),
       back: _CardSide(
         background: faceColor.withValues(alpha: 0.25),
-        child: _NatureFaceContent(
+        child: _ThemedFaceContent(
           pairId: widget.card.pairId,
           mapper: widget.mapper,
           label: label,
@@ -183,8 +184,8 @@ class _CardSide extends StatelessWidget {
   }
 }
 
-class _NatureFaceContent extends StatelessWidget {
-  const _NatureFaceContent({
+class _ThemedFaceContent extends StatelessWidget {
+  const _ThemedFaceContent({
     required this.pairId,
     required this.mapper,
     required this.label,
@@ -209,6 +210,41 @@ class _NatureFaceContent extends StatelessWidget {
             mapper.iconFor(pairId),
             size: 32,
             color: iconColor,
+          ),
+        ),
+      );
+    }
+
+    final glyph = mapper.glyphFor(pairId);
+    if (glyph != null) {
+      // Цифры и эмодзи: крупный glyph читается в клетке 4×4 лучше Material-иконок.
+      final isDigit = glyph.length == 1 && int.tryParse(glyph) != null;
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                glyph,
+                style: TextStyle(
+                  fontSize: isDigit ? 36 : 32,
+                  fontWeight: isDigit ? FontWeight.w700 : FontWeight.normal,
+                  height: 1,
+                  color: isDigit ? iconColor : null,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       );

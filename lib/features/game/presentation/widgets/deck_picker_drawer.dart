@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/deck_kind.dart';
+import '../extensions/deck_kind_ui.dart';
 import '../providers/game_providers.dart';
 
 /// Боковое меню выбора колоды: смена kind перезапускает партию через watch в Notifier.
@@ -26,17 +27,19 @@ class DeckPickerDrawer extends ConsumerWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              _DeckOptionTile(
-                key: const Key('deck_option_nature'),
-                title: 'Символы природы',
-                selected: selected == DeckKind.nature,
-                onTap: () => _selectDeck(context, ref, DeckKind.nature),
-              ),
-              _DeckOptionTile(
-                key: const Key('deck_option_playing_cards'),
-                title: 'Колода карт',
-                selected: selected == DeckKind.playingCards,
-                onTap: () => _selectDeck(context, ref, DeckKind.playingCards),
+              // ListView: семь пунктов не помещаются на маленьких экранах без скролла.
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final kind in DeckKind.values)
+                      _DeckOptionTile(
+                        key: Key('deck_option_${kind.name}'),
+                        title: kind.drawerTitle,
+                        selected: selected == kind,
+                        onTap: () => _selectDeck(context, ref, kind),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),

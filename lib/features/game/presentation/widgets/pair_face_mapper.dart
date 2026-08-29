@@ -33,6 +33,11 @@ class PairFaceMapper {
     return _catalog.findByPairId(pairId)?.assetPath;
   }
 
+  /// Эмодзи, цифра или Unicode-символ для тематических колод.
+  String? glyphFor(String pairId) {
+    return _catalog.findByPairId(pairId)?.glyph;
+  }
+
   String? rankFor(String pairId) {
     return _catalog.findByPairId(pairId)?.rank;
   }
